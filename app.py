@@ -45,6 +45,7 @@ def home():
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
+    <meta name="google-site-verification" content="21yc-t0xU1MFJINwGsWZQjsgjVJwoS8nYO2C2gT_PVU" />
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>سيارات الجزائر</title>
