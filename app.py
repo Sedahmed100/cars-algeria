@@ -19,6 +19,29 @@ cars = [
 ]
 
 
+
+def save_comment(car_name, author, content):
+    import sqlite3
+    db_path = os.path.join(app.root_path, "cars.db")
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO comments (car_name, author, content) VALUES (?, ?, ?)",
+            (car_name, author, content)
+        )
+
+
+def get_comments(car_name):
+    import sqlite3
+    db_path = os.path.join(app.root_path, "cars.db")
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT author, content, created_at FROM comments "
+            "WHERE car_name = ? ORDER BY id DESC",
+            (car_name,)
+        ).fetchall()
+    return [dict(row) for row in rows]
+
 def allowed_file(filename):
     return (
         "." in filename
@@ -39,11 +62,23 @@ def whatsapp_number(phone):
 def home():
     message = ""
 
-    if request.method == "POST":
+    if request.method == "POST" and request.form.get("action") == "comment":
+        car_name = request.form.get("car_name", "").strip()
+        author = request.form.get("author", "").strip()
+        content = request.form.get("content", "").strip()
+
+        if car_name and author and content and len(author) <= 60 and len(content) <= 1000:
+            save_comment(car_name, author, content)
+            message = "تم حفظ تعليقك بنجاح!"
+        else:
+            message = "يرجى إدخال الاسم والتعليق، مع الالتزام بالحد المسموح."
+
+    elif request.method == "POST":
         name = request.form.get("name", "").strip()
         year = request.form.get("year", "").strip()
         city = request.form.get("city", "").strip()
         price = request.form.get("price", "").strip()
+        km = request.form.get("km", "").strip()
         phone = request.form.get("phone", "").strip()
         origin = request.form.get("origin", "أخرى").strip()
         photo = request.files.get("photo")
@@ -71,6 +106,7 @@ def home():
                 "year": year,
                 "city": city,
                 "price": price,
+                "km": km,
                 "phone": phone,
                 "origin": origin,
                 "photo": photo_name
@@ -95,16 +131,35 @@ def home():
                 f'target="_blank" rel="noopener">تواصل عبر واتساب</a>'
             )
 
+        comments = get_comments(car["name"])
+        comments_html = "".join(
+            f'<p><strong>{escape(c["author"])}</strong>: {escape(c["content"])}</p>'
+            for c in comments
+        )
+        safe_car_name = escape(car["name"])
+
         cards += f"""
         <section class="card">
             {photo_html}
-            <h3>{escape(car["name"])}</h3>
+            <h3>{safe_car_name}</h3>
             <p>🚘 المنشأ: {escape(car["origin"])}</p>
             <p>📅 سنة الصنع: {escape(car["year"])}</p>
             <p>📍 الولاية: {escape(car["city"])}</p>
+            <p>🛣️ المسافة المقطوعة: {escape(car.get("km", "غير محددة"))} كم</p>
             <p class="price">{escape(car["price"])} دج</p>
             <p>📞 {escape(car["phone"]) if car["phone"] else "إعلان تجريبي"}</p>
             {whatsapp_html}
+            <h4>التعليقات</h4>
+            {comments_html}
+            <form method="POST">
+                <input type="hidden" name="action" value="comment">
+                <input type="hidden" name="car_name" value="{safe_car_name}">
+                <label>اسمك</label>
+                <input name="author" maxlength="60" required>
+                <label>تعليقك</label>
+                <input name="content" maxlength="1000" required>
+                <button type="submit">إرسال التعليق</button>
+            </form>
         </section>
         """
 
@@ -162,6 +217,8 @@ def home():
             <input name="year" type="number" min="1950" max="2027" placeholder="2020" required>
             <label>الولاية</label>
             <input name="city" placeholder="مثال: أدرار" required>
+            <label>المسافة المقطوعة (كم)</label>
+            <input name="km" type="number" min="0" placeholder="مثال: 150000" required>
             <label>السعر بالدينار الجزائري</label>
             <input name="price" type="number" min="1" placeholder="1800000" required>
             <label>رقم هاتف البائع</label>
