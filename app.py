@@ -74,6 +74,16 @@ def whatsapp_number(phone):
     return digits
 
 
+@app.route("/robots.txt")
+def robots_txt():
+    from flask import send_from_directory
+    return send_from_directory(app.root_path + "/static", "robots.txt")
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    from flask import send_from_directory
+    return send_from_directory(app.root_path + "/static", "sitemap.xml")
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     message = ""
