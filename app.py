@@ -9,6 +9,22 @@ app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
+# Initialize the comments table if it does not exist
+import sqlite3
+
+db_path = os.path.join(app.root_path, "cars.db")
+with sqlite3.connect(db_path) as conn:
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            car_name TEXT NOT NULL,
+            author TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
 cars = [
